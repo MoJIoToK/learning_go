@@ -1,26 +1,19 @@
-package task_8_8_2
+package mall
+
+import "fmt"
 
 type UnitType string
+
+//region Константы
 
 const (
 	Inch UnitType = "inch"
 	CM   UnitType = "cm"
 )
 
-func (u Unit) Get(t UnitType) float64 {
-	value := u.Value
+//endregion
 
-	if t != u.T {
-		switch t {
-		case CM:
-			value *= 2.54
-		case Inch:
-			value /= 2.54
-		}
-	}
-	return value
-}
-
+// region Интерфейсы
 type Dimensions interface {
 	Length() Unit
 	Width() Unit
@@ -34,6 +27,8 @@ type Auto interface {
 	MaxSpeed() int
 	EnginePower() int
 }
+
+//endregion
 
 // region Структуры
 
@@ -101,6 +96,20 @@ func (d dimensions) Height() Unit {
 	}
 }
 
+func (u Unit) Get(t UnitType) float64 {
+	value := u.Value
+
+	if t != u.T {
+		switch t {
+		case CM:
+			value *= 2.54
+		case Inch:
+			value /= 2.54
+		}
+	}
+	return value
+}
+
 //region Авто
 
 func (a auto) Brand() string { return a.brand }
@@ -117,4 +126,18 @@ func (a auto) EnginePower() int { return a.enginePower }
 
 //endregion
 
-//endregion
+func Print(a *auto, flag bool) {
+	var dim string
+	if flag {
+		dim = fmt.Sprintf("Длина: %v; Ширина: %v; Высота: %v\n",
+			a.Length().Get(CM), a.Width().Get(CM), a.Height().Get(CM))
+	} else {
+		dim = fmt.Sprintf("Длина: %v; Ширина: %v; Высота: %v\n",
+			a.Length().Get(Inch), a.Width().Get(Inch), a.Height().Get(Inch))
+	}
+	fmt.Printf("- Бренд: %v; Модель: %v; "+
+		"Максимальная скорость: %v; Мощность двигателя, лс: %v\n"+
+		dim, a.brand, a.model, a.maxSpeed, a.enginePower)
+}
+
+// endregion
