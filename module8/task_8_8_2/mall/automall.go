@@ -110,15 +110,13 @@ func (u Unit) Get(t UnitType) float64 {
 	return value
 }
 
-//region Авто
+//region Методы Авто
 
 func (a auto) Brand() string { return a.brand }
 
 func (a auto) Model() string { return a.model }
 
-func (a auto) Dimensions() Dimensions {
-	return a.dimensions
-}
+func (a auto) Dimensions() Dimensions { return a.dimensions }
 
 func (a auto) MaxSpeed() int { return a.maxSpeed }
 
