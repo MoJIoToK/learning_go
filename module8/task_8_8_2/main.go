@@ -1,37 +1,13 @@
 package main
 
-type UnitType string
-
-const (
-	Inch UnitType = "inch"
-	CM   UnitType = "cm"
+import (
+	"fmt"
+	mall "module8/task_8_8_2"
 )
 
-type Unit struct {
-	Value float64
-	T     UnitType
-}
+func main() {
+	//BMW
+	bmw := mall.NewAuto(mall.CM, 500, 600, 700, "BMW", "X5", 250, 500)
+	fmt.Println(bmw)
 
-func (u Unit) Get(t UnitType) float64 {
-	value := u.Value
-
-	if t != u.T {
-		// сконвертировать value в заданный в параметре UnitType
-	}
-
-	return value
-}
-
-type Dimensions interface {
-	Length() Unit
-	Width() Unit
-	Height() Unit
-}
-
-type Auto interface {
-	Brand() string
-	Model() string
-	Dimensions() Dimensions
-	MaxSpeed() int
-	EnginePower() int
 }
