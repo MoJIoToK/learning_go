@@ -16,7 +16,7 @@ ___
 
 [//]: # (![Рис.1. Схема бинарного дерева]&#40;img.png&#41;)
 <p align="center">
-  <img width="400" height="250" src="https://github.com/MoJIoToK/learning_go/blob/master/module13/img.png">
+  <img src="https://github.com/MoJIoToK/learning_go/blob/master/module13/img.png">
 </p>
 
 ## Литература
