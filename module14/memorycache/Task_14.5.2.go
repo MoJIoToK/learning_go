@@ -1,4 +1,4 @@
-package main
+package memorycache
 
 import (
 	"errors"
@@ -47,7 +47,7 @@ func NewInMemoryCache(defaultExpiration, cleanupInterval time.Duration) *InMemor
 		cleanupInterval:   cleanupInterval,
 	}
 
-	//Если интервал очистки больше 0, то запускается процесс очистки кеша GC.
+	//Проверка что интервал очистки больше 0. Если это так, то запускается процесс очистки кеша GC.
 	if cleanupInterval > 0 {
 		inMemoryCache.StartGC()
 	}
@@ -111,6 +111,7 @@ func (imc *InMemoryCache) Delete(key string) error {
 
 	defer imc.Unlock()
 
+	//Проверка на наличие элемента в кеше по ключу.
 	if _, ok := imc.items[key]; !ok {
 		return errors.New("Key not found!")
 	}
@@ -120,18 +121,23 @@ func (imc *InMemoryCache) Delete(key string) error {
 	return nil
 }
 
+// StartGC запускает метод поиска и удаления просроченных ключей. Активируется при инициализации
+// нового экземпляра кеша см. NewInMemoryCache и работает пока программа не будет завершена.
 func (imc *InMemoryCache) StartGC() {
 	go imc.GC()
 }
 
+// GC метод поиска и удаления просроченных ключей.
 func (imc *InMemoryCache) GC() {
 	for {
+		//ожидание времени, установленного в см. cleanupInterval
 		<-time.After(imc.cleanupInterval)
 
 		if imc.items == nil {
 			return
 		}
 
+		//Поиск элементов с истекшим временем жизни и удаление из хранилища
 		if keys := imc.expiredKeys(); len(keys) != 0 {
 			imc.clearItems(keys)
 		}
@@ -140,6 +146,7 @@ func (imc *InMemoryCache) GC() {
 
 }
 
+// ExpiredKeys поиск просроченных ключей. Возвращает []string.
 func (imc *InMemoryCache) expiredKeys() (keys []string) {
 	imc.RLock()
 
@@ -153,6 +160,7 @@ func (imc *InMemoryCache) expiredKeys() (keys []string) {
 	return
 }
 
+// ClearItems удаляет элементы с ключами, переданными в массиве.
 func (imc *InMemoryCache) clearItems(keys []string) {
 	imc.Lock()
 
@@ -163,6 +171,3 @@ func (imc *InMemoryCache) clearItems(keys []string) {
 	}
 
 }
-
-//Используя мапу, реализуйте тип InMemoryCache, который позволит хранить значения в течение
-//какого-то определённого времени (InMemoryCache должен реализовывать Cache interface):
