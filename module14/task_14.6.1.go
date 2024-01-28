@@ -4,63 +4,25 @@ import (
 	"fmt"
 )
 
-// IntersectionWithDoubles returns an array of type int with the same elements from two slices.
+// Intersection returns an array of type int with the same elements from two slices.
 // Counts duplicate elements in the same slice. Parameters - two slices of type - int.
 // Example, first slice - [1, 2, 3, 4, 5, 1], second slice - [3, 4, 5, 1], result slice - [3 4 5 1].
-func intersectionWithDoubles(inputArr1, inputArr2 []string) (result []string) {
+func intersection(inputArr1, inputArr2 []string) (result []string) {
 
 	inputMap := make(map[string]int)
-
 	for _, val := range inputArr1 {
-		_, exist := inputMap[val]
-		if exist {
-			inputMap[val]++
-		} else {
-			inputMap[val] = 1
-		}
+		inputMap[val] = 1
 	}
 
 	for _, val := range inputArr2 {
-		_, exist := inputMap[val]
-		if exist {
+		if _, ok := inputMap[val]; ok {
 			inputMap[val]++
-		} else {
-			inputMap[val] = 1
-		}
-		if inputMap[val] > 1 {
-			result = append(result, val)
-		}
-	}
-	return result
-}
-
-// IntersectionWithDoubles returns an array of type int with the same elements from two slices.
-// Duplicate elements in the same array are not counted. Parameters - two slices of type - int.
-// Example, first slice - [1, 2, 3, 4, 5, 1], second slice - [3, 4, 5, 1], result slice - [3 4 5].
-func intersectionWithOutDoubles(inputArr1, inputArr2 []string) (result []string) {
-
-	inputMap := make(map[string]int)
-
-	for _, val := range inputArr1 {
-		_, exist := inputMap[val]
-		//checking the existence of a key in the map
-		if exist {
-			inputMap[val]++
-		} else {
-			inputMap[val] = 1
 		}
 	}
 
-	for _, val := range inputArr2 {
-		_, exist := inputMap[val]
-		//checking the existence of a key in the map
-		if exist {
-			inputMap[val]++
-		} else {
-			inputMap[val] = 1
-		}
-		if inputMap[val] > 1 && inputMap[val] < 3 {
-			result = append(result, val)
+	for key, val := range inputMap {
+		if val > 1 {
+			result = append(result, key)
 		}
 	}
 	return result
@@ -92,7 +54,6 @@ func main() {
 	arr1 := fillArray(size1)
 	arr2 := fillArray(size2)
 
-	fmt.Println("Intersection between two slices with doubles - ", intersectionWithDoubles(arr1, arr2))
-	fmt.Println("Intersection between two slices without doubles - ", intersectionWithOutDoubles(arr1, arr2))
+	fmt.Println("Intersection between two slices - ", intersection(arr1, arr2))
 
 }
