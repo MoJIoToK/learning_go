@@ -75,8 +75,6 @@ func (c *Client) Balance() int {
 	return c.clientDeposit
 }
 
-// Menu is a function that displays the menu and also reads commands from the console.
-// According to the entered command, one of the methods of the Client structure is called.
 func main() {
 
 	fmt.Println("Подождите несколько секунд, пока загружаются данные!")
@@ -126,7 +124,8 @@ func main() {
 
 }
 
-// Menu
+// Menu is a function that displays the menu and also reads commands from the console.
+// According to the entered command, one of the methods of the Client structure is called.
 func menu(client *Client) {
 	fmt.Println("_____________________")
 	fmt.Println("Добро пожаловать в мини приложение банка ФГ 'Бюро'!\n" +
