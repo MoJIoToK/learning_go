@@ -71,7 +71,7 @@ func (c *Client) Withdrawal(amount int) error {
 // Implemented method from the BankClient interface.
 func (c *Client) Balance() int {
 	c.rwmx.RLock()
-	defer c.rwmx.Unlock()
+	defer c.rwmx.RUnlock()
 	return c.clientDeposit
 }
 
