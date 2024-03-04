@@ -18,7 +18,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Increment is a variable to which an anonymous function is assigned.
-	//This function is incremented counter with a given step. Goroutines are synchronized using by atomicInt
+	//This function is incremented counter with a given step. Goroutines are synchronized using by atomicInt.
 	increment := func() {
 		defer wg.Done()
 		atomic.AddInt64(&counter, STEP)
