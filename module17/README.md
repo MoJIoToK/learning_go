@@ -52,34 +52,40 @@ func main() {
 
 ```go
 package main
- 
+
 import (
-    "fmt"
-    "sync"
-    "sync/atomic"
+	"fmt"
+	"sync"
+	"sync/atomic"
 )
- 
+
 const STEP_1 int64 = 1
 const ITERATION_AMOUNT int = 1000
- 
+
 func main() {
-    var counter int64 = 0
-    var c = sync.NewCond(&sync.Mutex{})
-    increment := func(i int) {
-        atomic.AddInt64(&counter, STEP_1)
-        if i == ITERATION_AMOUNT {
-            c.Signal()
-        }
-    }
-    for i := 1; i <= ITERATION_AMOUNT; i++ {
-        go increment(i)
-    }
-    c.L.Lock()
-    c.Wait()
-    c.L.Unlock()
-    fmt.Println(counter)
+	var counter int64 = 0
+	var c = sync.NewCond(&sync.Mutex{})
+	increment := func(i int) {
+		atomic.AddInt64(&counter, STEP_1)
+		if i == ITERATION_AMOUNT {
+			c.Signal()
+		}
+	}
+	for i := 1; i <= ITERATION_AMOUNT; i++ {
+		go increment(i)
+	}
+	c.L.Lock()
+	c.Wait()
+	c.L.Unlock()
+	fmt.Println(counter)
 }
 ```
+
+### Task 17.6.1
+
+Напишите код, в котором имеются два канала сообщений из целых чисел, так, чтобы приём сообщений из них никогда не
+приводил к блокировке и чтобы вероятность приёма сообщения из первого канала была выше в 2 раза, чем из второго.
+*Если хотите, можете написать код, который бы демонстрировал это соотношение.
 
 ## Solution
 
