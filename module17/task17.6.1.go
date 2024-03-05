@@ -59,8 +59,13 @@ func main() {
 			}
 		}
 	}
+	//Start goroutine for send message to channels.
 	go sender()
+
+	//Start goroutine for receive message from channels.
 	go receiver()
+
+	//Add counter of waitgroup to count of goroutine.
 	wg.Add(2)
 	wg.Wait()
 }
