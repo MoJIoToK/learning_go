@@ -73,7 +73,7 @@ func main() {
 
 ### Solution 18.2.1
 
-[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module17/homework_17.3.1.go)
+[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module18/task18.2.1_homework.go)
 
 ### Solution 17.3.3
 
