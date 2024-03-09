@@ -64,19 +64,19 @@ const ITERATION_AMOUNT int = 1000
 
 func main() {
 	var counter int64 = 0
-	var c = sync.NewCond(&sync.Mutex{})
+	var count = sync.NewCond(&sync.Mutex{})
 	increment := func(i int) {
 		atomic.AddInt64(&counter, STEP_1)
 		if i == ITERATION_AMOUNT {
-			c.Signal()
+			count.Signal()
 		}
 	}
 	for i := 1; i <= ITERATION_AMOUNT; i++ {
 		go increment(i)
 	}
-	c.L.Lock()
-	c.Wait()
-	c.L.Unlock()
+	count.L.Lock()
+	count.Wait()
+	count.L.Unlock()
 	fmt.Println(counter)
 }
 ```
@@ -94,8 +94,17 @@ func main() {
 «бесконечного ожидания» сообщений выполнялась фоновая работа в виде вывода текущего времени в консоль.
 
 ### Task 17.6.3
+
 Напишите программу, которая делает следующее: одна горутина по порядку отсылает числа от 1 до 100 в канал, вторая
 горутина их принимает в правильном порядке и печатает на экран (в консоль).
+
+### Task 17.7.1
+
+Напишите код, в котором несколько горутин увеличивают значение целочисленного счётчика и синхронизируют свою работу
+через канал. Нужно предусмотреть возможность настройки количества используемых горутин и конечного значения счётчика, до
+которого его следует увеличивать.
+Попробуйте реализовать счётчик с элементами ООП (в виде структуры и методов структуры).
+Попробуйте реализовать динамическую проверку достижения счётчиком нужного значения.
 
 ## Solution
 
@@ -116,6 +125,10 @@ func main() {
 [Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module17/task17.6.2.go)
 
 ### Solution 17.6.3
+
+[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module17/task17.6.3.go)
+
+### Solution 17.7.1
 
 [Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module17/task17.6.3.go)
 

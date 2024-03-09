@@ -22,35 +22,43 @@ func main() {
 
 	// Increment is a variable to which an anonymous function is assigned.
 	//This function is incremented counter with a given step. Goroutines are synchronized using by conditional variable.
-	increment := func() {
+	increment := func(i int) {
 		//Blocks all goroutines but the one, where the increment happens.
 		//In fact, an object of type mutex is locked.
 		c.L.Lock()
-		counter += STEP_1
-		//fmt.Println(counter)
+
+		if counter < ITERATION_AMOUNT {
+			counter += STEP_1
+		} else {
+			c.Signal()
+		}
+
+		fmt.Println(i, counter)
 
 		//Unblocks all goroutines.
 		c.L.Unlock()
+
 	}
-	for i := 1; i <= ITERATION_AMOUNT; i++ {
-		go increment()
+	for i := 1; i <= ITERATION_AMOUNT+100; i++ {
+		go increment(i)
+
 	}
 
 	//This goroutines checks which counter is equal to ITERATION_AMOUNT.
-	go func() {
-		defer mu.RUnlock()
-		for {
-			//Block mutex for read.
-			mu.RLock()
-			if counter == ITERATION_AMOUNT {
-				//Signal sends a signal to the main goroutine.
-				c.Signal()
-				break
-			}
-			//Unblock mutex.
-			mu.RUnlock()
-		}
-	}()
+	//go func() {
+	//	defer mu.RUnlock()
+	//	for {
+	//		//Block mutex for read.
+	//		mu.RLock()
+	//		if counter == ITERATION_AMOUNT {
+	//			//Signal sends a signal to the main goroutine.
+	//			c.Signal()
+	//			break
+	//		}
+	//		//Unblock mutex.
+	//		mu.RUnlock()
+	//	}
+	//}()
 
 	c.L.Lock()
 
