@@ -130,6 +130,6 @@ func main() {
 
 ### Solution 17.7.1
 
-[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module17/task17.7.1.go)
+[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/tree/master/module17/task17)
 
 ## Improvements
