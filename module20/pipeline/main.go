@@ -58,7 +58,7 @@ func (r *RingIntBuffer) Get() []int {
 	return output
 }
 
-// read - метод позволяющий читать данные с консоли и записывать в канал.
+// read - метод позволяющий читать данные с консоли и записывать их в канал.
 func read(input chan<- int) {
 	for {
 		var u int
@@ -70,7 +70,7 @@ func read(input chan<- int) {
 	}
 }
 
-// removeNegatives - метод фильтрующий данные в канале числа меньше нуля.
+// removeNegatives - метод реализует стадию фильтрации данных в канале чисел меньше нуля.
 func removeNegatives(currentChannel <-chan int, nextChan chan<- int) {
 	for number := range currentChannel {
 		if number >= 0 {
@@ -79,10 +79,10 @@ func removeNegatives(currentChannel <-chan int, nextChan chan<- int) {
 	}
 }
 
-// removeDivThree - метод фильтрующий элементы канала не кратных 3. Исключая 0.
+// removeDivThree - метод реализует стадию фильтрации данных канала не кратных 3. Исключая 0.
 func removeDivThree(currentChannel <-chan int, nextChan chan<- int) {
 	for number := range currentChannel {
-		if number%3 != 0 {
+		if number%3 == 0 {
 			nextChan <- number
 		}
 	}
@@ -111,9 +111,11 @@ func main() {
 	input := make(chan int)
 	go read(input)
 
+	//Запуск стадии фильтрации отрицательных чисел.
 	negFilterChannel := make(chan int)
 	go removeNegatives(input, negFilterChannel)
 
+	//Запуск стадии фильтрации чисел кратных 3.
 	divThreeChannel := make(chan int)
 	go removeDivThree(negFilterChannel, divThreeChannel)
 

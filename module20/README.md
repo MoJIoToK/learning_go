@@ -1,4 +1,4 @@
-# Homework 19
+# Homework 20
 
 ## Task
 
@@ -25,10 +25,8 @@
 
 ## Solution
 
-### Solution 19.2.1
+### Solution 20.2
 
-[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module19/demultiplex_19.2.1.go)
-
-Изначальное решение находится [здесь](https://github.com/MoJIoToK/learning_go/blob/master/module19/demultiplex.go)
+[Решение находится здесь!](https://github.com/MoJIoToK/learning_go/blob/master/module20/pipeline/main.go)
 
 ## Improvements
