@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Print("Введите целое число: ")
 	data, err := reader.ReadString('\n')
