@@ -11,7 +11,7 @@ import (
 // «бесконечного ожидания» сообщений выполнялась фоновая работа в виде вывода текущего времени в консоль.
 
 // RandInt creates random int number from min to max.
-func randInt(min, max int) int {
+func randInt1(min, max int) int {
 	return min + rand.Intn(max-min)
 }
 
@@ -28,9 +28,9 @@ func main() {
 			//always run to default way.
 			<-time.Tick(time.Second * time.Duration(randInt(1, 5)))
 			if allocation <= 50 {
-				c1 <- randInt(1, 100)
+				c1 <- randInt1(1, 100)
 			} else {
-				c2 <- randInt(1, 100)
+				c2 <- randInt1(1, 100)
 			}
 		}
 	}

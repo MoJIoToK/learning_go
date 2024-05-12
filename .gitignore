@@ -109,3 +109,5 @@ fabric.properties
 
 # My draft
 **/ignore
+**/algorithms
+module17/test.go
