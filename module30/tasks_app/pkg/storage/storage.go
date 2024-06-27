@@ -79,6 +79,7 @@ func (s *Storage) GetTaskById(id int) (model.Task, error) {
 	return task, err
 }
 
+// GetTaskByAuthorId - метод возвращающий список задач по ID автора
 func (s *Storage) GetTaskByAuthorId(id int) ([]model.Task, error) {
 	query := "SELECT * FROM tasks WHERE author_id = $1"
 
