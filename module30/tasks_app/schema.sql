@@ -36,7 +36,20 @@ CREATE TABLE tasks_labels
 
 -- Наполнение БД начальными данными
 INSERT INTO users (id, name)
-VALUES (0, 'Nick');
+VALUES (0, 'Nick'),
+       (1, 'Vasiliy');
+
+INSERT INTO tasks(title, content, author_id)
+VALUES ('Hello', 'Hello msg', 0),
+       ('GOODBYE', 'BYE BYE', 1);
+
+INSERT INTO labels (id, name)
+VALUES (0, 'Done'),
+       (1, 'Ready');
+
+INSERT INTO tasks_labels (task_id, label_id)
+VALUES (1, 0),
+       (2, 1);
 
 SELECT *
 FROM users;
