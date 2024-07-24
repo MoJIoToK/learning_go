@@ -33,9 +33,7 @@
 
 ## Решение
 
-
-
-[Решение находится здесь](https://github.com/MoJIoToK/learning_go/tree/master/module31_pratice)
+[Решение находится здесь](https://github.com/MoJIoToK/learning_go/tree/master/module34/task34.6.1)
 
 ## Запуск приложения
 
