@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"math/rand"
-	"module35/task35.8.1/model"
 	"net"
+	"task35.8.1/model"
 	"time"
 )
 
