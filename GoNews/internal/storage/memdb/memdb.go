@@ -8,18 +8,20 @@ type Storage struct {
 
 // New - конструктор для эмулятора подключения к ДБ
 func New() *Storage {
-	return &Storage{}
+	return &Storage{
+		news: posts,
+	}
 }
 
 // GetPosts - метод возвращает слайс с публикациями
 func (s *Storage) GetPosts() ([]model.Post, error) {
-	var posts []model.Post
+	//var posts []model.Post
+	//
+	//for _, post := range s.news {
+	//	posts = append(posts, post)
+	//}
 
-	for _, post := range s.news {
-		posts = append(posts, post)
-	}
-
-	return posts, nil
+	return s.news, nil
 }
 
 // AddPost - метод добавляет публикацию в память
@@ -36,4 +38,17 @@ func (s *Storage) Close() error {
 // Len - метод возвращает количество публикаций
 func (s *Storage) Len() int {
 	return len(s.news)
+}
+
+var posts = []model.Post{
+	{
+		ID:      1,
+		Title:   "Effective Go",
+		Content: "Go is a new language.",
+	},
+	{
+		ID:      2,
+		Title:   "The Go Memory Model",
+		Content: "The Go memory model specifies the conditions under which",
+	},
 }
