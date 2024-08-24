@@ -2,8 +2,10 @@ package main
 
 import (
 	"GoNews/internal/api"
+	"GoNews/internal/rss"
 	"GoNews/internal/storage"
 	"GoNews/internal/storage/memdb"
+	"log"
 	"net/http"
 )
 
@@ -21,6 +23,19 @@ func main() {
 
 	srv.api = api.New(srv.db)
 
-	http.ListenAndServe(":8080", srv.api.Router())
+	posts, err := rss.Parse()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, post := range posts {
+		id, err := srv.db.AddPost(post)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Added post #%d to the database", id)
+	}
+
+	http.ListenAndServe(":80", srv.api.Router())
 
 }

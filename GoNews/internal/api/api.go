@@ -2,6 +2,7 @@ package api
 
 import (
 	"GoNews/internal/storage"
+	"encoding/json"
 	"github.com/gorilla/mux"
 	"net/http"
 )
@@ -32,16 +33,16 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	//news, err := api.storage.GetPosts()
-	//if err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-	//
-	//bytes, err := json.Marshal(news)
-	//if err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-	w.Write([]byte("Hello"))
+	news, err := api.storage.GetPosts()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bytes, err := json.Marshal(news)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(bytes)
 }
