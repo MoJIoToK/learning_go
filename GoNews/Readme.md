@@ -25,6 +25,13 @@
 - Файл с настройками - `config.yaml`. Имеет формат `yaml`
 - Пакеты `webapp` в `cmd` и `web` в корне скопированы из [репозитория](https://github.com/SkillfactoryCoding/GO-Advanced-GoNews/tree/master)
 
+[Решение находится здесь](https://github.com/MoJIoToK/learning_go/tree/master/GoNews)
+
 ## Запуск приложения
 
+Для запуска приложения необходимо развернуть сервер с БД mongoDB и подключиться к серверу.
 
+БД была развернута в Docker.
+
+Для запуска контейнера с mongoDB была введена команда:
+`docker run -p 27017:27017 -d mongo`

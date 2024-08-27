@@ -50,9 +50,8 @@ func New(conn string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-// AddPost - записывает посты в БД. На вход метода подаётся
-// слайс постов. Метод возвращает количество успешно записанных
-// постов и ошибку, отличную от duplicate key error.
+// AddPost - записывает посты в БД. На вход метода подаётся слайс постов.
+// Метод возвращает количество успешно записанных постов и ошибку, отличную от duplicate key error.
 func (s *Storage) AddPost(posts []model.Post) (int, error) {
 	const operation = "storage.mongodb.addPost"
 
@@ -78,7 +77,7 @@ func (s *Storage) AddPost(posts []model.Post) (int, error) {
 }
 
 // GetPosts - возвращает указанное число последних постов из БД.
-// На вход принимается число публикаций, которое должно быть возвращено
+// На вход принимается число публикаций, которое должно быть возвращено.
 func (s *Storage) GetPosts(n int) ([]model.Post, error) {
 	const operation = "storage.mongodb.getPosts"
 

@@ -18,6 +18,7 @@ var (
 	ErrBodyNil = errors.New("Response body is nil")
 )
 
+// Parse - функция позволяет десериализовать RSS-поток в структуру Post. Функция возвращает слайс типа Post и ошибку.
 func Parse(url string) ([]model.Post, error) {
 	const operation = "rss.Parse"
 
@@ -56,7 +57,6 @@ func Parse(url string) ([]model.Post, error) {
 		post.Link = item.Link
 		desc := strip.StripTags(item.Desc)
 		post.Content = regex.ReplaceAllString(desc, "\n")
-
 		item.PubDate = strings.ReplaceAll(item.PubDate, ",", "")
 		t, err := time.Parse("Mon 2 Jan 2006 15:04:05 -0700", item.PubDate)
 		if err != nil {
