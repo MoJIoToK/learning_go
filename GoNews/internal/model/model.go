@@ -1,6 +1,8 @@
 package model
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+)
 
 // Post - модель публикации в БД, получаемая из RSS ленты
 type Post struct {
@@ -29,6 +31,6 @@ type Channel struct {
 type Item struct {
 	Title   string `xml:"title"`
 	Desc    string `xml:"description"`
-	PubTime int64  `xml:"pubDate"`
+	PubDate string `xml:"pubDate"`
 	Link    string `xml:"link"`
 }

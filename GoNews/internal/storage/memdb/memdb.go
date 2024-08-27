@@ -4,6 +4,7 @@ import "GoNews/internal/model"
 
 type Storage struct {
 	news []model.Post
+	id   int
 }
 
 // New - конструктор для эмулятора подключения к ДБ
@@ -14,18 +15,22 @@ func New() *Storage {
 }
 
 // GetPosts - метод возвращает слайс с публикациями
-func (s *Storage) GetPosts() ([]model.Post, error) {
-	//var posts []model.Post
+func (s *Storage) GetPosts(n int) ([]model.Post, error) {
+	var posts []model.Post
 	//
 	//for _, post := range s.news {
 	//	posts = append(posts, post)
 	//}
+	for i := 0; i <= n; i++ {
+		posts = append(posts, s.news[i])
+	}
 
-	return s.news, nil
+	return posts, nil
 }
 
 // AddPost - метод добавляет публикацию в память
 func (s *Storage) AddPost(post model.Post) (int, error) {
+	post.ID = len(s.news) + 1
 	s.news = append(s.news, post)
 	return len(s.news), nil
 }

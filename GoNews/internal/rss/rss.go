@@ -2,46 +2,72 @@ package rss
 
 import (
 	"GoNews/internal/model"
-	"bytes"
 	"encoding/xml"
+	"errors"
+	"fmt"
+	strip "github.com/grokify/html-strip-tags-go"
 	"io"
+	"log"
 	"net/http"
+	"regexp"
+	"strings"
+	"time"
 )
 
-func Parse() ([]model.Post, error) {
-	url := "https://habr.com/ru/rss/hub/go/all/?fl=ru"
+var (
+	ErrBodyNil = errors.New("Response body is nil")
+)
+
+func Parse(url string) ([]model.Post, error) {
+	const operation = "rss.Parse"
 
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", operation, err)
+	}
+
+	if body == nil {
+		return nil, fmt.Errorf("%s: %w", operation, ErrBodyNil)
+	}
 
 	var f model.Feed
 
-	d := xml.NewDecoder(bytes.NewReader(body))
-	err = d.Decode(&f)
+	err = xml.Unmarshal(body, &f)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
 
-	//err = xml.Unmarshal(body, &f)
-	//if err != nil {
-	//	panic(err)
-	//}
+	var data []model.Post
+	regex, err := regexp.Compile(`[\n]{2,}[\s]+`)
+	if err != nil {
+		log.Println("Failed to compile regular expression")
+	}
 
-	//var data []model.Post
-	//
-	//for _, item := range f.Channel.Items {
-	//	var post model.Post
-	//	post.Title = item.Title
-	//	post.Link = item.Link
-	//	post.Content = item.Desc
-	//
-	//	data = append(data, post)
-	//}
+	for _, item := range f.Channel.Items {
+		var post model.Post
+		post.ID = len(data) + 1
+		post.Title = item.Title
+		post.Link = item.Link
+		desc := strip.StripTags(item.Desc)
+		post.Content = regex.ReplaceAllString(desc, "\n")
 
-	return f, nil
+		item.PubDate = strings.ReplaceAll(item.PubDate, ",", "")
+		t, err := time.Parse("Mon 2 Jan 2006 15:04:05 -0700", item.PubDate)
+		if err != nil {
+			t, err = time.Parse("Mon 2 Jan 2006 15:04:05 GMT", item.PubDate)
+		}
+		if err == nil {
+			post.PubTime = t.Unix()
+		}
+
+		data = append(data, post)
+	}
+
+	return data, nil
 }
