@@ -9,17 +9,20 @@ import (
 	"strconv"
 )
 
+// API - программный интерфейс сервиса GoNews
 type API struct {
 	r       *mux.Router
 	storage storage.DB
 }
 
-// New - конструктор API
+// New - конструктор API.
 func New(storage storage.DB) *API {
 	api := API{
 		storage: storage,
-		r:       mux.NewRouter(),
+		//Создание роутера
+		r: mux.NewRouter(),
 	}
+	//Запись обработчиков в структуре API
 	api.endpoints()
 	return &api
 }
@@ -36,7 +39,7 @@ func (api *API) endpoints() {
 	api.r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./cmd/webapp"))))
 }
 
-// PostsHandler -
+// PostsHandler - метод возвращает n публикации. Где n задаётся пользователем.
 func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 	const operation = "API.PostsHandler"
 
@@ -54,6 +57,7 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s: Failed to convert id to int", operation)
 	}
 
+	//Вызов метода получения записей из БД
 	news, err := api.storage.GetPosts(n)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -61,5 +65,6 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//Сериализация данных в JSON и отправка данных
 	json.NewEncoder(w).Encode(news)
 }

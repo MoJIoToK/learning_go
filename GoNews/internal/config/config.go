@@ -6,12 +6,15 @@ import (
 	"os"
 )
 
+// Config - структура конфигурации
 type Config struct {
 	URLS        []string `yaml:"rss"`
 	Period      int      `yaml:"request_period"`
 	StoragePath string   `yaml:"storage_path"`
 }
 
+// MustLoad - инициализирует данные из файла конфигурации. Путь к файлу передаётся в из функции main.
+// Если не удается раскодировать файл, то приложение завершается с ошибкой.
 func MustLoad(path string) *Config {
 	var cfg Config
 

@@ -13,6 +13,7 @@ import (
 	"testing"
 )
 
+// Mock для тестирования методов пакета API для подключения БД
 type MockStorage struct {
 	mock.Mock
 }
@@ -74,7 +75,5 @@ func TestAPI_PostsHandler(t *testing.T) {
 	}
 	assert.Equal(t, expectedPosts, responsePosts)
 
-	// Проверяем, что mock метод был вызван с ожидаемыми параметрами
 	mockStorage.AssertExpectations(t)
-
 }
