@@ -4,7 +4,6 @@ import (
 	"log"
 	"module31_pratice/pkg/api"
 	"module31_pratice/pkg/storage"
-	"module31_pratice/pkg/storage/mongo"
 	"module31_pratice/pkg/storage/postgres"
 	"net/http"
 )
@@ -30,21 +29,21 @@ func main() {
 	}
 
 	//БД на основе mongoDB
-	conn = "mongodb://localhost:27017/"
-	db3, err := mongo.New(conn)
-	if err != nil {
-		log.Fatal(err)
-	}
+	//conn = "mongodb://localhost:27017/"
+	//db3, err := mongo.New(conn)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
 
 	_ = db2
 
 	// Инициализация хранилище сервера конкретной БД
-	srv.db = db3
+	srv.db = db2
 
 	// Создание объекта API
 	srv.api = api.New(srv.db)
 
 	//Запуск сервера на порту 8080.
-	http.ListenAndServe(":8080", srv.api.Router())
+	http.ListenAndServe(":80", srv.api.Router())
 
 }

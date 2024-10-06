@@ -10,7 +10,7 @@ import (
 
 // Константы для обращения к БД и коллекции в mongoDB
 const (
-	dbName         = "goNews"
+	dbName         = "GoNews"
 	collectionName = "posts"
 )
 
