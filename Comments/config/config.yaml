@@ -1,0 +1,2 @@
+request_period: 5
+storage_path: "mongodb://localhost:27017/"

@@ -1,15 +1,15 @@
 <template>
   <div>
     <h2 class="mx-5 my-5">GoNews - агрегатор новостей.</h2>
-    <div v-for="post in news" :key="post.ID">
+    <div v-for="news in news" :key="news.ID">
       <v-card elevation="10" outlined class="mx-5 my-5">
         <v-card-title>
-          <a :href="post.Link" target="_blank"> {{ post.Title }} </a>
+          <a :href="news.Link" target="_blank"> {{ news.Title }} </a>
         </v-card-title>
         <v-card-text>
-          {{ post.Content }}
+          {{ news.Content }}
           <v-card-subtitle>
-            {{ new Date(post.PubTime * 1000) }}
+            {{ new Date(news.PubTime * 1000) }}
           </v-card-subtitle>
         </v-card-text>
       </v-card>
