@@ -36,7 +36,7 @@ func (api *API) Router() *mux.Router {
 // endpoints - метод регистрирует методы API в маршрутизаторе запросов.
 func (api *API) endpoints() {
 	api.r.HandleFunc("/comments/new", api.Add).Methods(http.MethodPost, http.MethodOptions)
-	api.r.HandleFunc("/comments/{id:[0-9]+}}", api.Comments).Methods(http.MethodGet, http.MethodOptions)
+	api.r.HandleFunc("/comments/{id:[0-9]+}", api.Comments).Methods(http.MethodGet, http.MethodOptions)
 }
 
 // PostsHandler - метод возвращает n публикации. Где n задаётся пользователем.
@@ -57,10 +57,6 @@ func (api *API) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//if len([]rune(comment.Content)) > ln {
-	//	http.Error(w, "the length of the comment must not exceed 1000 characters", http.StatusBadRequest)
-	//	return
-	//}
 	err = api.storage.AddComment(comment)
 	//err = api.storage.AddComment(comment)
 	if err != nil {
