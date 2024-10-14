@@ -4,4 +4,10 @@ rss:
   - "https://cprss.s3.amazonaws.com/golangweekly.com.xml"
 request_period: 5
 storage_path: "mongodb://localhost:27017/"
+# Server
+http_server:
+  address: "0.0.0.0:10501"
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 60s
 

@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 var (
@@ -52,22 +54,42 @@ func Parse(url string) ([]model.Post, error) {
 
 	for _, item := range f.Channel.Items {
 		var post model.Post
-		post.ID = len(data) + 1
 		post.Title = item.Title
 		post.Link = item.Link
 		desc := strip.StripTags(item.Desc)
 		post.Content = regex.ReplaceAllString(desc, "\n")
 		item.PubDate = strings.ReplaceAll(item.PubDate, ",", "")
-		t, err := time.Parse("Mon 2 Jan 2006 15:04:05 -0700", item.PubDate)
-		if err != nil {
-			t, err = time.Parse("Mon 2 Jan 2006 15:04:05 GMT", item.PubDate)
-		}
-		if err == nil {
-			post.PubTime = t.Unix()
-		}
+		post.PubTime = timeConversation(item.PubDate)
+		//t, err := time.Parse("Mon 2 Jan 2006 15:04:05 -0700", item.PubDate)
+		//if err != nil {
+		//	t, err = time.Parse("Mon 2 Jan 2006 15:04:05 GMT", item.PubDate)
+		//}
+		//if err == nil {
+		//	post.PubTime = t.Unix()
+		//}
 
 		data = append(data, post)
 	}
 
 	return data, nil
+}
+
+func timeConversation(str string) time.Time {
+	r, _ := utf8.DecodeLastRuneInString(str)
+	if r == utf8.RuneError {
+		return time.Now()
+	}
+
+	var t time.Time
+	var err error
+	switch {
+	case unicode.IsDigit(r):
+		t, err = time.Parse(time.RFC1123Z, str)
+	default:
+		t, err = time.Parse(time.RFC1123, str)
+	}
+	if err != nil {
+		return time.Now()
+	}
+	return t
 }

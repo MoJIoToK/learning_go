@@ -1,20 +1,51 @@
 package api
 
 import (
-	"APIGateWay/model"
+	"APIGateWay/pkg/config"
+	"APIGateWay/pkg/logger"
+	"APIGateWay/pkg/middleware"
+	"APIGateWay/pkg/model"
+	"bytes"
+	"context"
 	"encoding/json"
-	"github.com/gorilla/mux"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
-	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type API struct {
-	r *mux.Router
+	r     *mux.Router
+	proxy map[string]string
+	cl    *http.Client
 }
 
-func New() *API {
+const (
+	news     = "news"
+	comments = "comments"
+	censor   = "censor"
+)
+
+var (
+	ErrNotFound   = errors.New("not found")
+	ErrBadRequset = errors.New("bad request")
+)
+
+func New(cfg *config.Config) *API {
+	p := make(map[string]string)
+	p[news] = cfg.News
+	p[comments] = cfg.Comments
+	p[censor] = cfg.Censor
+
 	api := API{
-		r: mux.NewRouter(),
+		r:     mux.NewRouter(),
+		proxy: p,
+		cl:    &http.Client{},
 	}
 	api.endpoints()
 	return &api
@@ -25,80 +56,228 @@ func (api *API) Router() *mux.Router {
 }
 
 func (api *API) endpoints() {
-	api.r.HandleFunc("/news/latest", api.Latest).Methods(http.MethodGet, http.MethodOptions)
-	api.r.HandleFunc("/news/filter", api.Filter).Methods(http.MethodGet, http.MethodOptions)
-	api.r.HandleFunc("/news/{id:[0-9]+}", api.Detailed).Methods(http.MethodGet, http.MethodOptions)
-	api.r.HandleFunc("/news/commet", api.AddComment).Methods(http.MethodPost, http.MethodOptions)
+	api.r.Use(middleware.RequestID)
+	api.r.Use(middleware.Logger)
+	api.r.Use(middleware.RealIP)
+	api.r.HandleFunc("/news", api.News).Methods(http.MethodGet, http.MethodOptions)
+	api.r.HandleFunc("/news/id/{id}", api.Detailed).Methods(http.MethodGet, http.MethodOptions)
+	api.r.HandleFunc("/news/comments/new", api.AddComment).Methods(http.MethodPost, http.MethodOptions)
 }
 
-func (api *API) Latest(w http.ResponseWriter, r *http.Request) {
+func (api *API) News(w http.ResponseWriter, r *http.Request) {
+	const operation = "APIGateWay.api.News"
 
-	param := r.URL.Query().Get("page")
-	if param == "" {
-		param = "1"
-	}
+	log := slog.Default().With(
+		slog.String("op", operation),
+		slog.String("request_id", middleware.GetRequestID(r.Context())),
+	)
 
-	page, err := strconv.Atoi(param)
+	log.Info("Request to receive posts")
+
+	resp, err := request(api.proxy[news], r, api.cl)
 	if err != nil {
-		http.Error(w, "incorrect page number", http.StatusBadRequest)
+		log.Error("Failed to receive posts", logger.Err(err))
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
 		return
 	}
-	_ = page
+	defer resp.Body.Close()
 
-	var resp []model.NewsShortDetailed
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	resp = model.HardCode
-	enc := json.NewEncoder(w)
-	err = enc.Encode(&resp)
+	log.Debug("News received successfully")
+
+	copyHeader(w.Header(), resp.Header)
+	w.WriteHeader(resp.StatusCode)
+	_, err = io.Copy(w, resp.Body)
 	if err != nil {
-		http.Error(w, "failed to encode news", http.StatusInternalServerError)
+		log.Error("Failed to copy response body", logger.Err(err))
+		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-}
 
-func (api *API) Filter(w http.ResponseWriter, r *http.Request) {
-	var resp []model.NewsShortDetailed
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	resp = model.HardCode
-	enc := json.NewEncoder(w)
-	err := enc.Encode(resp)
-	if err != nil {
-		http.Error(w, "failed to encode news", http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
+	log.Info("request served successfully")
 }
 
 func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
+	const operation = "APIGateWay.api.Detailed"
 
-	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
+	log := slog.Default().With(
+		slog.String("op", operation),
+		slog.String("request_id", middleware.GetRequestID(r.Context())),
+	)
 
-	var resp = model.NewsFullDetailed{
-		News:     model.HardCode[id-1],
-		Comments: model.CommentNews1,
-	}
+	log.Info("Request to receive post by ID with comments")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	enc := json.NewEncoder(w)
-	err = enc.Encode(&resp)
-	if err != nil {
-		http.Error(w, "failed to encode detailed news", http.StatusInternalServerError)
+	w.Header().Set("Content-Type", "application/json")
+
+	// Объявим функцию, которая вызывает request и декодирует
+	// ответ в структуру.
+	fn := func(host string, req *http.Request, data any) error {
+		resp, err := request(host, req, api.cl)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrNotFound
+		}
+		if resp.StatusCode == http.StatusBadRequest {
+			return ErrBadRequset
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("request status = %d", resp.StatusCode)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("readAll err = %w", err)
+		}
+
+		err = json.Unmarshal(body, data)
+		if err != nil {
+			return fmt.Errorf("unmarshal err = %w", err)
+		}
+		return nil
+	}
+
+	var post model.NewsShortDetailed
+	var comment []model.FullComment
+	var errProxy error
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithCancel(context.Background())
+	rNews := r.Clone(r.Context())
+	rComm := r.Clone(ctx)
+
+	// Сделаем запросы в сервис новостей и сервис комментариев
+	// в отдельных горутинах.
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		err := fn(api.proxy[news], rNews, &post)
+		// Если при получении новости возникла ошибка, то сохраняем ее
+		// для дальнейшей обработки, затем прерываем запрос комментариев.
+		if err != nil {
+			log.Error("Failed to receive post", logger.Err(err))
+			errProxy = err
+			cancel()
+			return
+		}
+		log.Debug("Post received successfully")
+	}()
+
+	go func() {
+		defer wg.Done()
+		uri := rComm.URL.Path
+		uri = strings.ReplaceAll(uri, "post/id", "comments")
+		rComm.URL.Path = uri
+		err := fn(api.proxy[comments], rComm, &comment)
+		// Если при получении комментариев возникла ошибка, то не обрабатываем
+		// ее как в горутине получения новости, так как ошибка получения новости
+		// критична, а получения комментариев - нет.
+		if err != nil {
+			log.Error("Failed to receive comments", logger.Err(err))
+			return
+		}
+		log.Debug("Comments received successfully")
+	}()
+
+	wg.Wait()
+
+	if errProxy != nil {
+		log.Error("failed to find post by ID", logger.Err(errProxy))
+		if errors.Is(errProxy, ErrNotFound) {
+			http.Error(w, "post not found", http.StatusNotFound)
+			return
+		}
+		if errors.Is(errProxy, ErrBadRequset) {
+			http.Error(w, "incorrect post id", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
+
+	fullPost := model.NewsFullDetailed{
+		News:     post,
+		Comments: comment,
+	}
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	err := enc.Encode(fullPost)
+	if err != nil {
+		log.Error("Failed to encode post and comments", logger.Err(err))
+		http.Error(w, "Failed to encode post and comments", http.StatusInternalServerError)
+		return
+	}
+	log.Info("Request served successfully")
 }
 
 func (api *API) AddComment(w http.ResponseWriter, r *http.Request) {
-	var req []model.Comment
-	err := json.NewDecoder(r.Body).Decode(&req)
+	const operation = "APIGateWay.api.AddComment"
+
+	log := slog.Default().With(
+		slog.String("op", operation),
+		slog.String("request_id", middleware.GetRequestID(r.Context())),
+	)
+
+	log.Info("Request to add new comment")
+
+	// Создаем копии тела запроса.
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		http.Error(w, "failed to decode news", http.StatusInternalServerError)
+		log.Error("Failed to read request body", logger.Err(err))
+		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	if req[0].Content == "" {
-		http.Error(w, "Empty Comment", http.StatusBadRequest)
+	rc1 := io.NopCloser(bytes.NewBuffer(body))
+	rc2 := io.NopCloser(bytes.NewBuffer(body))
+
+	// Клонируем запрос с немодифицированнымм телом и меняем
+	// путь запроса.
+	rCens := r.Clone(r.Context())
+	rCens.Body = rc1
+	rCens.URL.Path = ""
+
+	log.Debug("Checking new comment")
+
+	respCensor, err := request(api.proxy[censor], rCens, api.cl)
+	if err != nil {
+		log.Error("Failed to check comment", logger.Err(err))
+		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		return
 	}
-	w.WriteHeader(http.StatusCreated)
+	defer respCensor.Body.Close()
+	io.Copy(io.Discard, respCensor.Body)
+
+	if respCensor.StatusCode != http.StatusOK {
+		log.Error("Comment contains inappropriate words", slog.Int("code", respCensor.StatusCode))
+		http.Error(w, "Comment contains inappropriate words", http.StatusBadRequest)
+		return
+	}
+	log.Debug("Comment checked successfully")
+
+	// Клонируем запрос с немодифицированнымм телом.
+	rComm := r.Clone(r.Context())
+	rComm.Body = rc2
+
+	respComm, err := request(api.proxy[comments], rComm, api.cl)
+	if err != nil {
+		log.Error("failed to add new comment", logger.Err(err))
+		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	defer respComm.Body.Close()
+
+	// Полностью копируем ответ сервиса комментариев в ResponseWriter.
+	copyHeader(w.Header(), respComm.Header)
+	w.WriteHeader(respComm.StatusCode)
+	_, err = io.Copy(w, respComm.Body)
+	if err != nil {
+		log.Error("failed to copy response body", logger.Err(err))
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("request served successfully")
 }

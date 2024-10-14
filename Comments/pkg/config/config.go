@@ -7,14 +7,13 @@ import (
 	"time"
 )
 
-// Config - структура конфигурации
+// Config - Структура конфига
 type Config struct {
-	URLS        []string `yaml:"rss"`
-	Period      int      `yaml:"request_period"`
-	StoragePath string   `yaml:"storage_path"`
+	StoragePath string `yaml:"storage_path"`
 	HTTPServer  `yaml:"http_server"`
 }
 
+// HTTPServer - структура с настройками сервера
 type HTTPServer struct {
 	Address      string        `yaml:"address"`
 	ReadTimeout  time.Duration `yaml:"read_timeout"`
@@ -22,8 +21,7 @@ type HTTPServer struct {
 	IdleTimeout  time.Duration `yaml:"idle_timeout"`
 }
 
-// MustLoad - инициализирует данные из файла конфигурации. Путь к файлу передаётся в из функции main.
-// Если не удается раскодировать файл, то приложение завершается с ошибкой.
+// MustLoad - инициализирует данные из конфиг файла.
 func MustLoad(path string) *Config {
 	var cfg Config
 

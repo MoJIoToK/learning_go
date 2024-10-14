@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/grokify/html-strip-tags-go v0.1.0
+	github.com/sqids/sqids-go v0.4.1
 	github.com/stretchr/testify v1.9.0
 	go.mongodb.org/mongo-driver v1.16.1
 	gopkg.in/yaml.v3 v3.0.1

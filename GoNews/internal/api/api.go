@@ -1,12 +1,17 @@
 package api
 
 import (
+	"GoNews/internal/logger"
+	"GoNews/internal/middleware"
+	"GoNews/internal/model"
 	"GoNews/internal/storage"
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"log"
+	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 // API - программный интерфейс сервиса GoNews
@@ -14,6 +19,21 @@ type API struct {
 	r       *mux.Router
 	storage storage.DB
 }
+
+// Response - основная структура ответа сервера.
+type Response struct {
+	Pagination Pagination   `json:"pagination"`
+	News       []model.Post `json:"news"`
+}
+
+// Pagination - структура пагинации.
+type Pagination struct {
+	Total int `json:"total_pages"`
+	Page  int `json:"current_page"`
+	Limit int `json:"limit"`
+}
+
+const countOnPage = 10
 
 // New - конструктор API.
 func New(storage storage.DB) *API {
@@ -35,36 +55,150 @@ func (api *API) Router() *mux.Router {
 
 // endpoints - метод регистрирует методы API в маршрутизаторе запросов.
 func (api *API) endpoints() {
-	api.r.HandleFunc("/news/{id:[0-9]+}", api.PostsHandler).Methods(http.MethodGet, http.MethodOptions)
+	api.r.HandleFunc("/news", api.PostsHandler).Methods(http.MethodGet, http.MethodOptions)
+	api.r.HandleFunc("/news/id/{id}", api.PostByID).Methods(http.MethodGet, http.MethodOptions)
 	api.r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("./cmd/webapp"))))
+	api.r.Use(middleware.Logger)
+	api.r.Use(middleware.RequestID)
 }
 
 // PostsHandler - метод возвращает n публикации. Где n задаётся пользователем.
 func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
-	const operation = "API.PostsHandler"
+	const operation = "GoNews.API.PostsHandler"
+
+	log := slog.Default().With(
+		slog.String("op", operation),
+		slog.String("request_id", middleware.GetRequestID(r.Context())),
+	)
+
+	log.Info("Request to receive posts")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	if r.Method == http.MethodOptions {
+	ctx := r.Context()
+
+	query := r.URL.Query().Get("s")
+	pageParam := r.URL.Query().Get("page")
+	limitParam := r.URL.Query().Get("limit")
+
+	opt := &storage.Options{}
+	if query != "" {
+		opt.SearchQuery = query
+	}
+
+	page, err := strconv.Atoi(pageParam)
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	num, err := api.storage.CountPosts(ctx, opt)
+	if err != nil {
+		log.Error("failed to count posts", logger.Err(err))
+		http.Error(w, "failed to receive posts from DB", http.StatusInternalServerError)
 		return
 	}
+	if num == 0 {
+		log.Error("posts not found")
+		http.Error(w, "posts not found", http.StatusNotFound)
+		return
+	}
+	log.Debug("posts count successfully", slog.Int64("num", num))
+
+	pgCount := int(num) / limit
+	if int(num)%limit != 0 {
+		pgCount++
+	}
+	if page > int(pgCount) {
+		page = 1
+	}
+
+	onPage := int(num) - (page-1)*limit
+	if onPage > 10 {
+		onPage = 10
+	}
+	pg := Pagination{Total: pgCount, Page: page, Limit: onPage}
+
+	opt.Count = limit
+	opt.Offset = limit * (page - 1)
+
+	posts, err := api.storage.GetPosts(ctx, opt)
+	if err != nil {
+		log.Error("failed to receive posts", logger.Err(err))
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	log.Debug("Posts received successfully", slog.Int("num", len(posts)))
+
+	response := Response{
+		Pagination: pg,
+		News:       posts,
+	}
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	err = enc.Encode(response)
+	if err != nil {
+		log.Error("failed to encode posts", logger.Err(err))
+		http.Error(w, "failed to encode posts", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("request served successfully")
+
+}
+
+func (api *API) PostByID(w http.ResponseWriter, r *http.Request) {
+	const operation = "GoNews.API.PostByID"
+
+	log := slog.Default().With(
+		slog.String("op", operation),
+		slog.String("request_id", middleware.GetRequestID(r.Context())),
+	)
+
+	log.Info("request to receive post by ID")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
 	vars := mux.Vars(r)
-	n, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("%s: Failed to convert id to int", operation)
-	}
-
-	//Вызов метода получения записей из БД
-	news, err := api.storage.GetPosts(n)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		log.Printf("%s: Failed to get posts from DB", operation)
+	id := vars["id"]
+	if id == "" {
+		log.Error("empty post id")
+		http.Error(w, "incorrect post id", http.StatusBadRequest)
 		return
 	}
 
-	//Сериализация данных в JSON и отправка данных
-	json.NewEncoder(w).Encode(news)
+	ctx := r.Context()
+	post, err := api.storage.PostByID(ctx, id)
+	if err != nil {
+		log.Error("failed to receive post by id", slog.String("id", id), logger.Err(err))
+		if errors.Is(err, storage.ErrNotFound) {
+			http.Error(w, "post not found", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, storage.ErrIncorrectId) {
+			http.Error(w, "incorrect post id", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "failed to receive post", http.StatusInternalServerError)
+		return
+	}
+	log.Debug("post by ID received successfully", slog.String("id", id))
+
+	enc := json.NewEncoder(w)
+	enc.SetIndent("", "\t")
+	err = enc.Encode(post)
+	if err != nil {
+		log.Error("failed to encode post", logger.Err(err))
+		http.Error(w, "failed to encode post", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info("request served successfuly", slog.String("id", id))
 }

@@ -2,37 +2,32 @@ package model
 
 import "time"
 
+// NewsFullDetailed - структура новости и комментария к ней.
 type NewsFullDetailed struct {
 	News     NewsShortDetailed
-	Comments []Comment
+	Comments []FullComment `json:"Comments"`
 }
 
+// NewsShortDetailed - структура короткой записи новости.
 type NewsShortDetailed struct {
-	ID      int    `json:"ID"`
-	Title   string `json:"Title"`
-	Content string `json:"Content"`
-	PubTime int64  `json:"PubTime"`
-	Link    string `json:"Link"`
+	ID      string    `json:"ID"`
+	Title   string    `json:"Title"`
+	Content string    `json:"Content"`
+	PubTime time.Time `json:"PubTime"`
+	Link    string    `json:"Link"`
 }
 
+// Comment - структура комментария к новости.
 type Comment struct {
-	ID       int    `json:"ID"`
-	ParentID int    `json:"ParentID"`
-	NewsID   int    `json:"NewsID"`
-	Content  string `json:"Content"`
+	ID       string    `json:"ID"`
+	ParentID string    `json:"ParentID"`
+	NewsID   string    `json:"NewsID"`
+	PubTime  time.Time `json:"PubTime"`
+	Content  string    `json:"Content"`
 }
 
-var HardCode = []NewsShortDetailed{
-	{ID: 1, Title: "Title 1", Content: "Content 1", PubTime: time.Now().Unix(), Link: "Link 1"},
-	{ID: 2, Title: "Title 2", Content: "Content 2", PubTime: time.Now().Unix(), Link: "Link 2"},
-	{ID: 3, Title: "Title 3", Content: "Content 3", PubTime: time.Now().Unix(), Link: "Link 3"},
-}
-
-var CommentNews1 = []Comment{
-	{ID: 1, ParentID: 0, NewsID: 1, Content: "Content 1"},
-}
-
-var CommentNews2 = []Comment{
-	{ID: 2, ParentID: 0, NewsID: 1, Content: "Content 2"},
-	{ID: 3, ParentID: 0, NewsID: 1, Content: "Content 3"},
+// FullComment - структура комментария и его дочерних комментариев.
+type FullComment struct {
+	Comment
+	Childs []FullComment `json:"Childs"`
 }

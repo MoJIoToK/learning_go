@@ -2,15 +2,20 @@ package storage
 
 import (
 	"Comments/pkg/model"
+	"context"
 	"errors"
 )
 
 var (
-	ErrEmptyDB     = errors.New("Database is empty")
-	ErrZeroRequest = errors.New("Requested zero posts")
+	ErrNoComments         = errors.New("No comments on provided post id")
+	ErrParentNotFound     = errors.New("Parent comment not found")
+	ErrIncorrectParentID  = errors.New("Incorrect parent id")
+	ErrIncorrectPostID    = errors.New("Incorrect post id")
+	ErrIncorrectCommentID = errors.New("Incorrect comment id")
+	ErrEmptyContent       = errors.New("Empty comment content field")
 )
 
 type DB interface {
-	AddComment(comment model.Comment) error
-	Comments(news string) ([]model.Comment, error)
+	AddComment(ctx context.Context, comment model.Comment) (string, error)
+	Comments(ctx context.Context, news string) ([]model.Comment, error)
 }

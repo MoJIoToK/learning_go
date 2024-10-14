@@ -5,11 +5,12 @@ import (
 	"Comments/pkg/storage"
 	"context"
 	"fmt"
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
 const (
@@ -53,82 +54,90 @@ func New(conn string) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) AddComment(comment model.Comment) error {
+func (s *Storage) AddComment(ctx context.Context, comment model.Comment) (string, error) {
 	const operation = "storage.mongodb.addComment"
 
-	if comment.NewsID == "" {
-		return fmt.Errorf("%s: %v", operation, storage.ErrEmptyDB)
+	if t, err := primitive.ObjectIDFromHex(comment.NewsID); err != nil {
+		fmt.Println(t, err)
+		return "", fmt.Errorf("%s: %w", operation, storage.ErrIncorrectPostID)
 	}
 
-	if comment.Content == "" {
-		return fmt.Errorf("%s: %v", operation, storage.ErrEmptyDB)
-	}
+	/*
+		if comment.NewsID == "" {
+			return fmt.Errorf("%s: %v", operation, storage.ErrEmptyDB)
+		}
 
+		if comment.Content == "" {
+			return fmt.Errorf("%s: %v", operation, storage.ErrEmptyDB)
+		}
+	*/
+
+	id := primitive.NewObjectID()
 	bsn := bson.D{
-		{Key: "_id", Value: primitive.NewObjectID()},
+		{Key: "_id", Value: id},
 		{Key: "ParentID", Value: comment.ParentID},
 		{Key: "NewsID", Value: comment.NewsID},
 		{Key: "PubTime", Value: primitive.NewDateTimeFromTime(time.Now())},
-		{Key: "allowed", Value: true},
 		{Key: "Content", Value: comment.Content},
 		{Key: "Childs", Value: bson.A{}},
 	}
 
 	collection := s.db.Database(dbName).Collection(collectionName)
 
-	if comment.ParentID == "" {
-		_, err := collection.InsertOne(context.Background(), bsn)
+	if comment.ParentID != "" {
+		id, err := primitive.ObjectIDFromHex(comment.ParentID)
 		if err != nil {
-			return fmt.Errorf("%s: %v", operation, storage.ErrEmptyDB)
+			return "", fmt.Errorf("%s: %w", operation, storage.ErrIncorrectParentID)
 		}
-		fmt.Println(comment.ID)
-		return nil
+		filter := bson.D{
+			{Key: "_id", Value: id},
+		}
+		res := collection.FindOne(ctx, filter)
+		if res.Err() != nil {
+			if res.Err() == mongo.ErrNoDocuments {
+				return "", fmt.Errorf("%s: %w", operation, storage.ErrParentNotFound)
+			}
+			return "", fmt.Errorf("%s: %w", operation, res.Err())
+		}
+
 	}
 
-	parent, err := primitive.ObjectIDFromHex(comment.ParentID)
+	_, err := collection.InsertOne(ctx, bsn)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", operation, err)
+	}
 
-	if err != nil {
-		return fmt.Errorf("%s: %w", operation, storage.ErrEmptyDB)
-	}
-	opts := options.Update().SetUpsert(false)
-	filter := bson.D{
-		{Key: "NewsID", Value: comment.NewsID},
-		{Key: "_id", Value: parent},
-	}
-	update := bson.D{
-		{Key: "$push", Value: bson.D{
-			{Key: "Childs", Value: bsn},
-		}},
-	}
-	result, err := collection.UpdateOne(context.Background(), filter, update, opts)
-	if err != nil {
-		return fmt.Errorf("%s: %w", operation, err)
-	}
-	if result.MatchedCount == 0 {
-		return fmt.Errorf("%s: %w", operation, storage.ErrEmptyDB)
-	}
-	return nil
+	return id.Hex(), nil
 }
 
-func (s *Storage) Comments(news string) ([]model.Comment, error) {
+func (s *Storage) Comments(ctx context.Context, news string) ([]model.Comment, error) {
 	const operation = "storage.mongodb.AddComment"
+
 	if news == "" {
-		return nil, storage.ErrEmptyDB
+		return nil, storage.ErrIncorrectPostID
 	}
+
+	if _, err := primitive.ObjectIDFromHex(news); err != nil {
+		return nil, fmt.Errorf("%s: %w", operation, storage.ErrIncorrectPostID)
+	}
+
 	var comments []model.Comment
 	collection := s.db.Database(dbName).Collection(collectionName)
 	opts := options.Find().SetSort(bson.D{{Key: "PubTime", Value: -1}})
 	filter := bson.D{{Key: "NewsID", Value: news}}
-	cursor, err := collection.Find(context.Background(), filter, opts)
+
+	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
-	err = cursor.All(context.Background(), &comments)
+
+	err = cursor.All(ctx, &comments)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", operation, err)
 	}
+
 	if len(comments) == 0 {
-		return nil, storage.ErrEmptyDB
+		return nil, fmt.Errorf("%s: %w", operation, storage.ErrNoComments)
 	}
 	return comments, nil
 }

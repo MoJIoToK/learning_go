@@ -8,6 +8,5 @@ type Comment struct {
 	NewsID   string    `json:"NewsID" bson:"NewsID"`
 	Content  string    `json:"Content" bson:"Content"`
 	PubTime  time.Time `json:"PubTime" bson:"PubTime"`
-	Allowed  bool
 	Childs   []Comment `json:"Childs" bson:"Childs"`
 }

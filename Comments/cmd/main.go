@@ -2,9 +2,12 @@ package main
 
 import (
 	"Comments/pkg/api"
+	"Comments/pkg/config"
+	"Comments/pkg/logger"
 	"Comments/pkg/storage"
 	"Comments/pkg/storage/mongo"
 	"log"
+	"log/slog"
 	"net/http"
 )
 
@@ -16,13 +19,16 @@ type server struct {
 
 func main() {
 
+	logger.SetupLogger()
+	slog.Debug("Logger setup load successful")
+
 	var srv server
 
-	//cfg := config.MustLoad("./config/config.yaml")
+	cfg := config.MustLoad("./config/config.yaml")
+	slog.Debug("Load config file success")
 
 	//Инициализация зависимостей
-	conn := "mongodb://localhost:27017/"
-	db, err := mongo.New(conn)
+	db, err := mongo.New(cfg.StoragePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,7 +37,7 @@ func main() {
 	srv.api = api.New(srv.db)
 
 	//Запуск веб-сервера с API и приложением
-	err = http.ListenAndServe(":80", srv.api.Router())
+	err = http.ListenAndServe(cfg.Address, srv.api.Router())
 	if err != nil {
 		log.Fatal(err)
 	}

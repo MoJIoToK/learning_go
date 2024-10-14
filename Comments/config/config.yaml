@@ -1,2 +1,8 @@
 request_period: 5
 storage_path: "mongodb://localhost:27017/"
+# Server
+http_server:
+  address: "0.0.0.0:10502"
+  read_timeout: 5s
+  write_timeout: 10s
+  idle_timeout: 60s

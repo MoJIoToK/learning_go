@@ -2,15 +2,16 @@ package model
 
 import (
 	"encoding/xml"
+	"time"
 )
 
 // Post - модель публикации в БД, получаемая из RSS ленты
 type Post struct {
-	ID      int
-	Title   string
-	Content string
-	PubTime int64
-	Link    string
+	ID      string    `json:"id" bson:"_id"`
+	Title   string    `json:"title" bson:"title"`
+	Content string    `json:"content" bson:"content"`
+	PubTime time.Time `json:"pubTime" bson:"pubTime"`
+	Link    string    `json:"link" bson:"link"`
 }
 
 // Feed - структура для RSS канала

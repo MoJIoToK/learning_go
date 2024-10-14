@@ -3,11 +3,14 @@ package main
 import (
 	"GoNews/internal/api"
 	"GoNews/internal/config"
+	"GoNews/internal/logger"
 	"GoNews/internal/model"
 	"GoNews/internal/rss"
 	"GoNews/internal/storage"
 	"GoNews/internal/storage/mongo"
+	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -20,9 +23,13 @@ type server struct {
 
 func main() {
 
+	logger.SetupLogger()
+	slog.Debug("Logger setup load successful")
+
 	var srv server
 
 	cfg := config.MustLoad("./config/config.yaml")
+	slog.Debug("Load config file success")
 
 	//Инициализация зависимостей
 	conn := cfg.StoragePath
@@ -43,10 +50,11 @@ func main() {
 		go parseURL(url, chPosts, chErrors, cfg.Period)
 	}
 
+	ctx := context.Background()
 	//Запись потока публикаций из канала в БД
 	go func() {
 		for posts := range chPosts {
-			db.AddPost(posts)
+			db.AddPost(ctx, posts)
 		}
 	}()
 
@@ -58,7 +66,7 @@ func main() {
 	}()
 
 	//Запуск веб-сервера с API и приложением
-	err = http.ListenAndServe(":80", srv.api.Router())
+	err = http.ListenAndServe(cfg.Address, srv.api.Router())
 	if err != nil {
 		log.Fatal(err)
 	}
