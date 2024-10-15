@@ -10,12 +10,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config - структура конфигурации.
+// Config - Структура конфигурации.
 type Config struct {
-	URLS        []string `yaml:"rss"`
-	Period      int      `yaml:"request_period"`
-	StoragePath string   `yaml:"storage_path"`
-	HTTPServer  `yaml:"http_server"`
+	CensorList []string `yaml:"censor_list"`
+	HTTPServer `yaml:"http_server"`
 }
 
 // HTTPServer - структура для хранения настроек сервера.

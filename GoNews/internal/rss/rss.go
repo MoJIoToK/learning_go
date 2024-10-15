@@ -1,3 +1,5 @@
+// Пакет rss позволяет десереализовать RSS-поток в структуру Post.
+
 package rss
 
 import (
@@ -5,7 +7,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	strip "github.com/grokify/html-strip-tags-go"
 	"io"
 	"log"
 	"net/http"
@@ -14,15 +15,16 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	strip "github.com/grokify/html-strip-tags-go"
 )
 
-var (
-	ErrBodyNil = errors.New("Response body is nil")
-)
+// ErrBodyNil - ошибка указывающая на то, что тело запроса пустое.
+var ErrBodyNil = errors.New("response body is nil")
 
 // Parse - функция позволяет десериализовать RSS-поток в структуру Post. Функция возвращает слайс типа Post и ошибку.
 func Parse(url string) ([]model.Post, error) {
-	const operation = "rss.Parse"
+	const operation = "GoNews.rss.Parse"
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -60,13 +62,6 @@ func Parse(url string) ([]model.Post, error) {
 		post.Content = regex.ReplaceAllString(desc, "\n")
 		item.PubDate = strings.ReplaceAll(item.PubDate, ",", "")
 		post.PubTime = timeConversation(item.PubDate)
-		//t, err := time.Parse("Mon 2 Jan 2006 15:04:05 -0700", item.PubDate)
-		//if err != nil {
-		//	t, err = time.Parse("Mon 2 Jan 2006 15:04:05 GMT", item.PubDate)
-		//}
-		//if err == nil {
-		//	post.PubTime = t.Unix()
-		//}
 
 		data = append(data, post)
 	}
@@ -74,6 +69,7 @@ func Parse(url string) ([]model.Post, error) {
 	return data, nil
 }
 
+// timeConversation - функция для конвертации времени из строки в формат time.Time.
 func timeConversation(str string) time.Time {
 	r, _ := utf8.DecodeLastRuneInString(str)
 	if r == utf8.RuneError {

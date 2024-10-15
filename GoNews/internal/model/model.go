@@ -1,3 +1,5 @@
+//Пакет model содержит структуры для работы с RSS-лентами и моделью публикаций в базе данных.
+
 package model
 
 import (
@@ -5,7 +7,7 @@ import (
 	"time"
 )
 
-// Post - модель публикации в БД, получаемая из RSS ленты
+// Post - модель публикации в БД, получаемая из RSS ленты.
 type Post struct {
 	ID      string    `json:"id" bson:"_id"`
 	Title   string    `json:"title" bson:"title"`
@@ -14,13 +16,13 @@ type Post struct {
 	Link    string    `json:"link" bson:"link"`
 }
 
-// Feed - структура для RSS канала
+// Feed - структура для RSS канала.
 type Feed struct {
 	XMLName xml.Name `xml:"rss"`
 	Channel Channel  `xml:"channel"`
 }
 
-// Channel - структура для RSS-потока
+// Channel - структура для RSS-потока.
 type Channel struct {
 	Title       string `xml:"title"`
 	Link        string `xml:"link"`
@@ -28,7 +30,7 @@ type Channel struct {
 	Items       []Item `xml:"item"`
 }
 
-// Item - структура для записи одной публикации
+// Item - структура для записи одной публикации.
 type Item struct {
 	Title   string `xml:"title"`
 	Desc    string `xml:"description"`

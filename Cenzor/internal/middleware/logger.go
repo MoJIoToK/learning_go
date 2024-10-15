@@ -33,7 +33,6 @@ func (l *loggingResponseWriter) WriteHeader(code int) {
 // Logger - функция, которая позволяет записывать логи запроса и ответа в логгер slog.
 func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Логирование входящего запроса
 		slog.Info("Request log:",
 			slog.String("host", r.Host),
 			slog.String("uri", r.RequestURI),

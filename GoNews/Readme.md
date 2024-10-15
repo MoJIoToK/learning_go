@@ -23,7 +23,8 @@
 - При решении была использована нереляционная БД - MongoDB
 - Модель данных для БД и для RSS-потока выведена в отдельный пакет `model`
 - Файл с настройками - `config.yaml`. Имеет формат `yaml`
-- Пакеты `webapp` в `cmd` и `web` в корне скопированы из [репозитория](https://github.com/SkillfactoryCoding/GO-Advanced-GoNews/tree/master)
+- Пакеты `webapp` в `cmd` и `web` в корне скопированы
+  из [репозитория](https://github.com/SkillfactoryCoding/GO-Advanced-GoNews/tree/master)
 
 [Решение находится здесь](https://github.com/MoJIoToK/learning_go/tree/master/GoNews)
 
@@ -35,3 +36,18 @@
 
 Для запуска контейнера с mongoDB была введена команда:
 `docker run -p 27017:27017 -d mongo`
+
+## Методы проверки
+
+Проверка производилась с помощью _Postman_:
+
+- GET `/news?s={query}&page={num}&limit={count}`, где query - поисковой запрос, num - номер страницы (по-умолчанию 1),
+  count - количество новостей на страницу. Возвращает все статьи в соответствии с параметрами с пагинацией.
+- GET `/news/id/{id}` , id - идентификатор ObjectID новостной статьи, берется из БД MongoDB. Возвращает статью с
+  переданным ID.
+
+## References
+
+- [Сервис шлюз](https://github.com/MoJIoToK/learning_go/tree/master/APIGateWay)
+- [Сервис комментариев](https://github.com/MoJIoToK/learning_go/tree/master/Comments)
+- [Сервис цензурирования комментариев](https://github.com/MoJIoToK/learning_go/tree/master/Cenzor)

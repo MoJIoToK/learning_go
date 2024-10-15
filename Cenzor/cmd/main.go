@@ -1,13 +1,14 @@
 package main
 
 import (
-	"Cenzor/pkg/api"
-	"Cenzor/pkg/config"
-	"Cenzor/pkg/logger"
+	"Cenzor/internal/api"
+	"Cenzor/internal/config"
+	"Cenzor/internal/logger"
 	"log/slog"
 	"net/http"
 )
 
+// server - структура сервера, хранящая экземпляр БД и конфигурацию.
 type server struct {
 	api *api.API
 	cfg *config.Config
@@ -15,9 +16,11 @@ type server struct {
 
 func main() {
 
+	//Инициализация логера.
 	logger.SetupLogger()
 	slog.Debug("Logger setup load successful")
 
+	//Загрузка конфигураций из файла конфигурации.
 	cfg := config.MustLoad("./config/config.yaml")
 	slog.Debug("Load config file success")
 

@@ -12,10 +12,10 @@ import (
 
 // Config - структура конфигурации.
 type Config struct {
-	URLS        []string `yaml:"rss"`
-	Period      int      `yaml:"request_period"`
-	StoragePath string   `yaml:"storage_path"`
-	HTTPServer  `yaml:"http_server"`
+	News       string `yaml:"news_service"`
+	Comments   string `yaml:"comments_service"`
+	Censor     string `yaml:"censor_service"`
+	HTTPServer `yaml:"http_server"`
 }
 
 // HTTPServer - структура для хранения настроек сервера.

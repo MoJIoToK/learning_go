@@ -1,3 +1,5 @@
+// Пакет для работы с базой данных MongoDB.
+
 package mongo
 
 import (
@@ -5,6 +7,7 @@ import (
 	"GoNews/internal/storage"
 	"context"
 	"fmt"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,14 +40,15 @@ func New(conn string) (*Storage, error) {
 
 	collection := db.Database(dbName).Collection(collectionName)
 
+	//Создание уникального индекса по полю title, для избежания записи уже существующих постов.
 	indexUniq := mongo.IndexModel{
 		Keys:    bson.D{{Key: "title", Value: -1}},
 		Options: options.Index().SetUnique(true),
 	}
 
+	//Создание индекса текстового поиска по полю title.
 	indexId := mongo.IndexModel{
 		Keys: bson.D{{Key: "title", Value: "text"}},
-		//Options: options.Index().SetUnique(true),
 	}
 
 	_, err = collection.Indexes().CreateMany(context.Background(), []mongo.IndexModel{indexUniq, indexId})
@@ -58,7 +62,7 @@ func New(conn string) (*Storage, error) {
 // AddPost - записывает посты в БД. На вход метода подаётся слайс постов.
 // Метод возвращает количество успешно записанных постов и ошибку, отличную от duplicate key error.
 func (s *Storage) AddPost(ctx context.Context, posts []model.Post) (int, error) {
-	const operation = "storage.mongodb.addPost"
+	const operation = "GoNews.storage.mongodb.addPost"
 
 	var inputDB []interface{}
 	for _, post := range posts {
@@ -80,14 +84,12 @@ func (s *Storage) AddPost(ctx context.Context, posts []model.Post) (int, error) 
 	return len(res.InsertedIDs), nil
 }
 
-// GetPosts - возвращает указанное число последних постов из БД.
-// На вход принимается число публикаций, которое должно быть возвращено.
+// GetPosts - возвращает посты из БД в соответствии с переданными опциями.
+// Опции для возвращения постов: запрос на текстовый поиск, лимит числа постов на страницу,
+// оффсет для пагинации. Если параметр опции nil, то вернет все посты, отсортированные по
+// дате публикации.
 func (s *Storage) GetPosts(ctx context.Context, op ...*storage.Options) ([]model.Post, error) {
-	const operation = "storage.mongodb.getPosts"
-
-	//if n == 0 {
-	//	return nil, fmt.Errorf("%s: %w", operation, storage.ErrZeroRequest)
-	//}
+	const operation = "GoNews.storage.mongodb.getPosts"
 
 	collection := s.db.Database(dbName).Collection(collectionName)
 	filter := bson.D{}
@@ -137,8 +139,9 @@ func (s *Storage) GetPosts(ctx context.Context, op ...*storage.Options) ([]model
 	return posts, nil
 }
 
+// CountPosts - метод возвращает число постов, соответствующих условиям поиска.
 func (s *Storage) CountPosts(ctx context.Context, op ...*storage.Options) (int64, error) {
-	const operation = "storage.mongodb.Count"
+	const operation = "GoNews.storage.mongodb.Count"
 
 	filter := bson.D{}
 	opts := options.Count().SetHint("_id_")
@@ -156,6 +159,7 @@ func (s *Storage) CountPosts(ctx context.Context, op ...*storage.Options) (int64
 	return res, nil
 }
 
+// PostByID - метод возвращает пост по переданному ID.
 func (s *Storage) PostByID(ctx context.Context, id string) (model.Post, error) {
 	const operation = "storage.mongodb.PostById"
 	var post model.Post

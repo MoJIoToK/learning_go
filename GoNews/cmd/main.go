@@ -23,11 +23,13 @@ type server struct {
 
 func main() {
 
+	//Инициализация логера.
 	logger.SetupLogger()
 	slog.Debug("Logger setup load successful")
 
 	var srv server
 
+	//Загрузка конфигураций из файла конфигурации.
 	cfg := config.MustLoad("./config/config.yaml")
 	slog.Debug("Load config file success")
 

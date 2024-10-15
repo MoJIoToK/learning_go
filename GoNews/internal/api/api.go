@@ -1,3 +1,5 @@
+//Пакет api содержит обработчики api
+
 package api
 
 import (
@@ -14,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// API - программный интерфейс сервиса GoNews
+// API - программный интерфейс сервиса GoNews.
 type API struct {
 	r       *mux.Router
 	storage storage.DB
@@ -33,7 +35,8 @@ type Pagination struct {
 	Limit int `json:"limit"`
 }
 
-const countOnPage = 10
+// postPerPage - количество постов на страницу по умолчанию.
+const postPerPage = 10
 
 // New - конструктор API.
 func New(storage storage.DB) *API {
@@ -62,7 +65,8 @@ func (api *API) endpoints() {
 	api.r.Use(middleware.RequestID)
 }
 
-// PostsHandler - метод возвращает n публикации. Где n задаётся пользователем.
+// PostsHandler - метод записывает в ResponseWrite ответ в формате JSON.
+// В Ответ включен объект пагинации и слайса постов из БД, которые соответствуют запросу.
 func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 	const operation = "GoNews.API.PostsHandler"
 
@@ -94,7 +98,7 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		limit = 10
+		limit = postPerPage
 	}
 
 	num, err := api.storage.CountPosts(ctx, opt)
@@ -114,13 +118,13 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 	if int(num)%limit != 0 {
 		pgCount++
 	}
-	if page > int(pgCount) {
+	if page > pgCount {
 		page = 1
 	}
 
 	onPage := int(num) - (page-1)*limit
-	if onPage > 10 {
-		onPage = 10
+	if onPage > postPerPage {
+		onPage = postPerPage
 	}
 	pg := Pagination{Total: pgCount, Page: page, Limit: onPage}
 
@@ -153,6 +157,7 @@ func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// PostByID - метод записывает в ResponseWriter один пост по переданному ID.
 func (api *API) PostByID(w http.ResponseWriter, r *http.Request) {
 	const operation = "GoNews.API.PostByID"
 
@@ -200,5 +205,5 @@ func (api *API) PostByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("request served successfuly", slog.String("id", id))
+	log.Info("request served successfully", slog.String("id", id))
 }

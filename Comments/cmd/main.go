@@ -1,11 +1,11 @@
 package main
 
 import (
-	"Comments/pkg/api"
-	"Comments/pkg/config"
-	"Comments/pkg/logger"
-	"Comments/pkg/storage"
-	"Comments/pkg/storage/mongo"
+	"Comments/internal/api"
+	"Comments/internal/config"
+	"Comments/internal/logger"
+	"Comments/internal/storage"
+	"Comments/internal/storage/mongo"
 	"log"
 	"log/slog"
 	"net/http"
@@ -19,11 +19,13 @@ type server struct {
 
 func main() {
 
+	//Инициализация логера.
 	logger.SetupLogger()
 	slog.Debug("Logger setup load successful")
 
 	var srv server
 
+	//Загрузка конфигураций из файла конфигурации.
 	cfg := config.MustLoad("./config/config.yaml")
 	slog.Debug("Load config file success")
 

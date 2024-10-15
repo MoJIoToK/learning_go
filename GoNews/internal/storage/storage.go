@@ -1,3 +1,5 @@
+//Пакет содержит интерфейс для работы с любой реализацией базы данных, удовлетворяющей этому интерфейсу.
+
 package storage
 
 import (
@@ -6,6 +8,7 @@ import (
 	"errors"
 )
 
+// Ошибки при работе с БД.
 var (
 	ErrIncorrectId = errors.New("incorrect id")
 	ErrNotFound    = errors.New("post not found")
@@ -23,6 +26,7 @@ type Options struct {
 	Offset int
 }
 
+// Interface - интерфейс хранилища постов из RSS лент.
 type DB interface {
 	AddPost(ctx context.Context, post []model.Post) (int, error)
 	GetPosts(ctx context.Context, op ...*Options) ([]model.Post, error)
