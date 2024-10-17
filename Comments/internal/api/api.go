@@ -1,6 +1,7 @@
 package api
 
 import (
+	"Comments/internal/config"
 	"Comments/internal/logger"
 	"Comments/internal/middleware"
 	"Comments/internal/model"
@@ -18,14 +19,16 @@ import (
 type API struct {
 	r       *mux.Router
 	storage storage.DB
+	cfg     *config.Config
 }
 
 // New - конструктор API.
-func New(storage storage.DB) *API {
+func New(storage storage.DB, cfg *config.Config) *API {
 	api := API{
 		storage: storage,
 		//Создание роутера
-		r: mux.NewRouter(),
+		r:   mux.NewRouter(),
+		cfg: cfg,
 	}
 	//Запись обработчиков в структуре API
 	api.endpoints()
@@ -46,15 +49,19 @@ func (api *API) endpoints() {
 	api.r.HandleFunc("/news/id/{id}", api.Comments).Methods(http.MethodGet, http.MethodOptions)
 }
 
+// Add - метод позволяет добавить комментарий в БД. Тело запроса проверяется на наличие в поле content
+// содержимого, если данное поле пустое, то в качестве ответа на запрос отправляется ошибка.
 func (api *API) Add(w http.ResponseWriter, r *http.Request) {
-	const operation = "server.AddComment"
+	const operation = "goComments.server.AddComment"
 
 	log := slog.Default().With(
 		slog.String("op", operation),
 		slog.String("request_id", middleware.GetRequestID(r.Context())),
 	)
 
-	log.Info("Request to add comment")
+	log.Info("Add comment request")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 
 	ct := r.Header.Get("Content-Type")
 	media := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
@@ -64,13 +71,14 @@ func (api *API) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	r.Body = http.MaxBytesReader(w, r.Body, api.cfg.MaxBodySize)
+	defer r.Body.Close()
 
 	var comment model.Comment
 	err := json.NewDecoder(r.Body).Decode(&comment)
 	if err != nil {
-		log.Error("Cannot decode request", logger.Err(err))
-		http.Error(w, "cannot decode request", http.StatusBadRequest)
+		log.Error("Request cannot be decoded", logger.Err(err))
+		http.Error(w, "Request cannot be decoded", http.StatusBadRequest)
 		return
 	}
 	log.Debug("request body decoded")
@@ -89,24 +97,25 @@ func (api *API) Add(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Incorrect data", http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "cannot add the comment", http.StatusInternalServerError)
+		http.Error(w, "Comment cannot be added", http.StatusInternalServerError)
 		return
 	}
-	log.Debug("comment added to DB successfully", slog.String("id", id))
+	log.Debug("Comment added to DB successfully", slog.String("id", id))
 
 	w.WriteHeader(http.StatusCreated)
 	log.Info("Request served successfully")
 }
 
+// Comments - метод позволяет вывести все комментарии к определенной новости по её ID в формате ObjectID.
 func (api *API) Comments(w http.ResponseWriter, r *http.Request) {
-	const operation = "server.Comments"
+	const operation = "goComments.server.Comments"
 
 	log := slog.Default().With(
 		slog.String("op", operation),
 		slog.String("request_id", middleware.GetRequestID(r.Context())),
 	)
 
-	log.Info("request to receive comments")
+	log.Info("Receive comments request")
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
@@ -120,7 +129,7 @@ func (api *API) Comments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	comms, err := api.storage.Comments(ctx, id)
+	comments, err := api.storage.Comments(ctx, id)
 	if err != nil {
 		log.Error("Cannot receive comments", logger.Err(err))
 		if errors.Is(err, storage.ErrNoComments) {
@@ -128,7 +137,7 @@ func (api *API) Comments(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, storage.ErrIncorrectPostID) {
-			http.Error(w, "incorrect post id", http.StatusBadRequest)
+			http.Error(w, "Incorrect post id", http.StatusBadRequest)
 			return
 		}
 		http.Error(w, "Cannot receive comments", http.StatusInternalServerError)
@@ -137,10 +146,10 @@ func (api *API) Comments(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("Comments received successfully")
 
-	root, err := tree.Build(comms)
+	root, err := tree.Build(comments)
 	if err != nil {
-		log.Error("cannot build comments tree", logger.Err(err))
-		http.Error(w, "cannot receive comments", http.StatusInternalServerError)
+		log.Error("Comments tree cannot be build", logger.Err(err))
+		http.Error(w, "Comments tree cannot be build", http.StatusInternalServerError)
 		return
 	}
 
@@ -148,8 +157,8 @@ func (api *API) Comments(w http.ResponseWriter, r *http.Request) {
 	enc.SetIndent("", "\t")
 	err = enc.Encode(root.Comments)
 	if err != nil {
-		log.Error("Cannot encode comments", logger.Err(err))
-		http.Error(w, "Cannot encode comments", http.StatusInternalServerError)
+		log.Error("Comments cannot be encoded", logger.Err(err))
+		http.Error(w, "Comments cannot be encoded", http.StatusInternalServerError)
 		return
 	}
 

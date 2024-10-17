@@ -49,28 +49,39 @@ func (api *API) endpoints() {
 // проверку либо код 400, если проверку не была пройдена.
 func (api *API) Cenzor(w http.ResponseWriter, r *http.Request) {
 
-	const operation = "Cenzor.server.Cenzor"
+	const operation = "goCenzor.server.Cenzor"
 
 	log := slog.Default().With(
 		slog.String("op", operation),
 		slog.String("request_id", middleware.GetRequestID(r.Context())),
 	)
 
-	log.Info("Request to censor comment")
+	log.Info("Comment censor request")
 
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+	r.Body = http.MaxBytesReader(w, r.Body, api.cfg.MaxBodySize)
+	defer r.Body.Close()
 
 	var req model.Request
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
-		log.Error("Cannot decode request", logger.Err(err))
-		http.Error(w, "cannot decode request", http.StatusBadRequest)
+		
+		// Проверяем, была ли ошибка вызвана превышением лимита на размер тела
+		if strings.Contains(err.Error(), "http: request body too large") {
+			// Логируем ошибку
+			log.Error("Request body too large", logger.Err(err))
+			// Возвращаем код 413 и сообщение об ошибке
+			http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+
+		log.Error("Request cannot be decoded", logger.Err(err))
+		http.Error(w, "Request cannot be decoded", http.StatusBadRequest)
 		return
 	}
 
-	if isOffensive(req.Content, api.cfg.CensorList) {
-		log.Info("Comment contains offensive words")
-		http.Error(w, "", http.StatusBadRequest)
+	if isProhibited(req.Content, api.cfg.CensorList) {
+		log.Info("The comment contains prohibited words")
+		http.Error(w, "The comment contains prohibited words", http.StatusBadRequest)
 		return
 	}
 	log.Info("Comment is allowed")
@@ -79,9 +90,9 @@ func (api *API) Cenzor(w http.ResponseWriter, r *http.Request) {
 	log.Info("Request served successfully")
 }
 
-// isOffensive - функция проверяет текст контента комментария на содержание недопустимых выражений.
+// isProhibited - функция проверяет текст контента комментария на содержание недопустимых выражений.
 // Проверяется вхождение недопустимого выражения в текст.
-func isOffensive(text string, words []string) bool {
+func isProhibited(text string, words []string) bool {
 	for _, word := range words {
 		if strings.Contains(text, word) {
 			return true

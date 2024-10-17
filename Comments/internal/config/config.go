@@ -22,6 +22,7 @@ type HTTPServer struct {
 	ReadTimeout  time.Duration `yaml:"read_timeout"`
 	WriteTimeout time.Duration `yaml:"write_timeout"`
 	IdleTimeout  time.Duration `yaml:"idle_timeout"`
+	MaxBodySize  int64         `yaml:"max_body_size"`
 }
 
 // MustLoad - инициализирует данные из файла конфигурации. Путь к файлу передаётся в из функции main.

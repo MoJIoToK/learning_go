@@ -66,7 +66,7 @@ func (api *API) endpoints() {
 }
 
 // PostsHandler - метод записывает в ResponseWrite ответ в формате JSON.
-// В Ответ включен объект пагинации и слайса постов из БД, которые соответствуют запросу.
+// В ответ включен объект пагинации и слайса постов из БД, которые соответствуют запросу.
 func (api *API) PostsHandler(w http.ResponseWriter, r *http.Request) {
 	const operation = "GoNews.API.PostsHandler"
 

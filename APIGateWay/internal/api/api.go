@@ -13,7 +13,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -83,10 +82,16 @@ func (api *API) News(w http.ResponseWriter, r *http.Request) {
 
 	log.Info("Request to receive posts")
 
+	if checkAPIProxy(api.proxy, api.proxy[news]) {
+		log.Error("Service goNews unavailable")
+		http.Error(w, "Service goNews unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	resp, err := request(api.proxy[news], r, api.cl)
 	if err != nil {
-		log.Error("Failed to receive posts", logger.Err(err))
-		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		log.Error("Failed to receive news from the GoNews service", logger.Err(err))
+		http.Error(w, "Service goNews unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer resp.Body.Close()
@@ -102,7 +107,7 @@ func (api *API) News(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("request served successfully")
+	log.Info("Request served successfully")
 }
 
 // Detailed - метод перенаправляет запрос на получение одной новости по ее ID вместе с комментариями. Запрос передаётся
@@ -137,23 +142,24 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("request status = %d", resp.StatusCode)
+			return fmt.Errorf("Request status = %d", resp.StatusCode)
 		}
 
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("readAll err = %w", err)
+			return fmt.Errorf("ReadAll err = %w", err)
 		}
 
 		err = json.Unmarshal(body, data)
 		if err != nil {
-			return fmt.Errorf("unmarshal err = %w", err)
+			return fmt.Errorf("Unmarshal err = %w", err)
 		}
 		return nil
 	}
 
 	var post model.NewsShortDetailed
 	var comment []model.FullComment
+
 	//Переменная для хранения ошибки получения ответа от новостного агрегатора
 	var errProxy error
 	var wg sync.WaitGroup
@@ -165,24 +171,36 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
+
+		if checkAPIProxy(api.proxy, api.proxy[news]) {
+			log.Error("Service goNews unavailable")
+			errProxy = errors.New("Service goNews unavailable")
+			cancel()
+			return
+		}
+
 		err := fn(api.proxy[news], rNews, &post)
 
 		// При возникновении ошибки получения ответа от новостного агрегатора, запрос комментариев можно прервать.
 		if err != nil {
-			log.Error("Failed to receive post", logger.Err(err))
+			log.Error("Failed to receive post from the GoNews service", logger.Err(err))
 			errProxy = err
 			cancel()
 			return
 		}
-		log.Debug("Post received successfully")
+		log.Debug("News received successfully")
 	}()
 
 	go func() {
 		defer wg.Done()
-		uri := rComm.URL.Path
-		uri = strings.ReplaceAll(uri, "post/id", "comments")
-		rComm.URL.Path = uri
+
+		if checkAPIProxy(api.proxy, api.proxy[comments]) {
+			log.Error("Service goComments unavailable")
+			return
+		}
+
 		err := fn(api.proxy[comments], rComm, &comment)
+
 		//  При возникновении ошибки получения ответа от сервиса комментариев, то прерывание запроса не требуется.
 		// В связи с приоритетностью получения новости.
 		if err != nil {
@@ -195,16 +213,16 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 	wg.Wait()
 
 	if errProxy != nil {
-		log.Error("failed to find post by ID", logger.Err(errProxy))
+		log.Error("Failed to find post by ID", logger.Err(errProxy))
 		if errors.Is(errProxy, ErrNotFound) {
-			http.Error(w, "post not found", http.StatusNotFound)
+			http.Error(w, "Post not found", http.StatusNotFound)
 			return
 		}
 		if errors.Is(errProxy, ErrBadRequset) {
-			http.Error(w, "incorrect post id", http.StatusBadRequest)
+			http.Error(w, "Incorrect post id", http.StatusBadRequest)
 			return
 		}
-		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "Service goNews unavailable", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -255,18 +273,24 @@ func (api *API) AddComment(w http.ResponseWriter, r *http.Request) {
 
 	log.Debug("Checking new comment")
 
+	if checkAPIProxy(api.proxy, api.proxy[censor]) {
+		log.Error("Service goCenzor unavailable")
+		http.Error(w, "Service goCenzor unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	respCensor, err := request(api.proxy[censor], rCens, api.cl)
 	if err != nil {
 		log.Error("Failed to check comment", logger.Err(err))
-		http.Error(w, "Service unavailable", http.StatusServiceUnavailable)
+		http.Error(w, "Service goCenzor unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer respCensor.Body.Close()
 	io.Copy(io.Discard, respCensor.Body)
 
 	if respCensor.StatusCode != http.StatusOK {
-		log.Error("Comment contains inappropriate words", slog.Int("code", respCensor.StatusCode))
-		http.Error(w, "Comment contains inappropriate words", http.StatusBadRequest)
+		log.Error("Comment contains prohibited words", slog.Int("code", respCensor.StatusCode))
+		http.Error(w, "Comment contains prohibited words", http.StatusBadRequest)
 		return
 	}
 	log.Debug("Comment checked successfully")
@@ -275,10 +299,16 @@ func (api *API) AddComment(w http.ResponseWriter, r *http.Request) {
 	rComm := r.Clone(r.Context())
 	rComm.Body = rc2
 
+	if checkAPIProxy(api.proxy, api.proxy[comments]) {
+		log.Error("Service goComments unavailable")
+		http.Error(w, "Service goComments unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	respComm, err := request(api.proxy[comments], rComm, api.cl)
 	if err != nil {
-		log.Error("failed to add new comment", logger.Err(err))
-		http.Error(w, "service unavailable", http.StatusServiceUnavailable)
+		log.Error("Failed to add new comment. Service goComments unavailable", logger.Err(err))
+		http.Error(w, "Service goComments unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	defer respComm.Body.Close()
@@ -288,10 +318,18 @@ func (api *API) AddComment(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(respComm.StatusCode)
 	_, err = io.Copy(w, respComm.Body)
 	if err != nil {
-		log.Error("failed to copy response body", logger.Err(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		log.Error("Failed to copy response body", logger.Err(err))
+		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
 	}
 
-	log.Info("request served successfully")
+	log.Info("Request served successfully")
+}
+
+func checkAPIProxy(proxy map[string]string, s string) bool {
+	_, ok := proxy[s]
+	if ok {
+		return true
+	}
+	return false
 }

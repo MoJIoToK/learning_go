@@ -15,6 +15,7 @@ import (
 type server struct {
 	db  storage.DB
 	api *api.API
+	cfg *config.Config
 }
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	srv.db = db
-	srv.api = api.New(srv.db)
+	srv.api = api.New(srv.db, cfg)
 
 	//Запуск веб-сервера с API и приложением
 	err = http.ListenAndServe(cfg.Address, srv.api.Router())
