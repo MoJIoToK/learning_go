@@ -164,8 +164,8 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 	var errProxy error
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
-	rNews := r.Clone(r.Context())
-	rComm := r.Clone(ctx)
+	reqNews := r.Clone(r.Context())
+	reqComments := r.Clone(ctx)
 
 	// Выполнение каждого запроса в сервис новостей и сервис комментариев в отдельных горутинах.
 	wg.Add(2)
@@ -179,7 +179,7 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err := fn(api.proxy[news], rNews, &post)
+		err := fn(api.proxy[news], reqNews, &post)
 
 		// При возникновении ошибки получения ответа от новостного агрегатора, запрос комментариев можно прервать.
 		if err != nil {
@@ -199,7 +199,7 @@ func (api *API) Detailed(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err := fn(api.proxy[comments], rComm, &comment)
+		err := fn(api.proxy[comments], reqComments, &comment)
 
 		//  При возникновении ошибки получения ответа от сервиса комментариев, то прерывание запроса не требуется.
 		// В связи с приоритетностью получения новости.
